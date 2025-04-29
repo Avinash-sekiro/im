@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class Activities - AI Klassroom</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/class-activities.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+  <!-- Auth scripts for proper logout functionality -->
+  <script src="../js/auth.js"></script>
+  <!-- Session Manager for tab closing and inactivity logout -->
+  <script src="../js/session-manager.js"></script>
+  <!-- CSS moved to external file: class-activities.css -->
+</head>
+<body>
+  <!-- Immediate execution script for logout functionality -->
+  <script>
+    // This script runs immediately when the page loads
+    window.addEventListener('load', function() {
+      console.log('Window loaded - setting up logout button');
+      
+      // Initialize session manager for tab closing and inactivity logout
+      if (window.sessionManager) {
+        window.sessionManager.init();
+        console.log('Session manager initialized');
+      }
+      
+      // Set up logout button with a slight delay to ensure DOM is ready
+      setTimeout(function() {
+        const logoutButton = document.getElementById('logout-button');
+        const logoutModal = document.getElementById('logout-confirm-modal');
+        const closeModalBtn = document.getElementById('close-logout-modal');
+        const cancelLogoutBtn = document.getElementById('cancel-logout-btn');
+        const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
+        
+        if (logoutButton) {
+          console.log('Found logout button, attaching click handler');
+          logoutButton.onclick = function(e) {
+            console.log('Logout button clicked');
+            if (logoutModal) {
+              logoutModal.style.display = 'block';
+            }
+            return false;
+          };
+        }
+        
+        if (closeModalBtn) {
+          closeModalBtn.onclick = function() {
+            logoutModal.style.display = 'none';
+          };
+        }
+        
+        if (cancelLogoutBtn) {
+          cancelLogoutBtn.onclick = function() {
+            logoutModal.style.display = 'none';
+          };
+        }
+        
+        if (confirmLogoutBtn) {
+          confirmLogoutBtn.onclick = function() {
+            logoutModal.style.display = 'none';
+            console.log('Logging out...');
+            // Use the proper logout function if available
+            if (typeof logoutUser === 'function') {
+              logoutUser();
+            } else {
+              // Fallback to basic logout if auth.js is not loaded
+              console.warn('logoutUser function not found, using fallback logout');
+              localStorage.clear();
+              window.location.href = '../index.html';
+            }
+          };
+        }
+      }, 500);
+    });
+  </script>
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <div class="logo" style="position: absolute; left: 0; right: 0; text-align: center;">
+          <h1>AI Klassroom</h1>
+        </div>
+        <div style="visibility: hidden;"><!-- Empty space to balance layout --></div>
+        <div class="user-info">
+          <span id="userEmail"></span>
+          <a href="javascript:void(0);" id="logout-button" class="btn btn-danger" style="display: inline-block; position: relative; z-index: 2000; cursor: pointer;"><i class="fa fa-sign-out"></i> Logout</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+<!-- Toast Notification -->
+<div id="toast" style="display:none;">Notification</div>
+
+<!-- Toast notification styling moved to class-activities.css -->
+
+<!-- Logout Confirmation Modal -->
+<div id="logout-confirm-modal" class="modal">
+  <div class="modal-content" style="max-width: 400px;">
+    <span class="close-modal" id="close-logout-modal">&times;</span>
+    <h2 style="color: #333; text-align: center;">Confirm Logout</h2>
+    <p style="text-align: center; margin: 20px 0;">Are you sure you want to log out?</p>
+    <div style="display: flex; justify-content: center; gap: 15px;">
+      <button id="confirm-logout-btn" class="start-activity-modal-btn" style="background-color: #d9534f;">
+        <i class="fa fa-sign-out"></i> Yes, Log Out
+      </button>
+      <button id="cancel-logout-btn" class="start-activity-modal-btn" style="background-color: #5bc0de;">
+        <i class="fa fa-times"></i> Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+  <main>
+    <div class="container">
+      <section class="class-selector">
+        <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+          <div class="class-selector-container" style="margin: 0; position: relative; width: 180px;">
+            <div id="classDropdownTrigger" class="class-dropdown-trigger" style="padding: 12px 16px; border-radius: 12px; border: none; background: linear-gradient(to right, #4776E6, #8E54E9); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(142, 84, 233, 0.2); transition: all 0.3s ease;">
+              <span id="selectedClassText" style="font-weight: 500;">Select Class</span>
+              <i class="fas fa-chevron-down dropdown-icon" style="transition: transform 0.3s ease;"></i>
+            </div>
+            
+            <!-- Custom dropdown menu for class selection -->
+            <div id="customClassDropdown" class="custom-dropdown" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1000; margin-top: 8px; transform-origin: top center; animation: slideDown 0.3s ease-out forwards; overflow: hidden;">
+              <div class="dropdown-header" style="background: linear-gradient(to right, #4776E6, #8E54E9); padding: 12px; text-align: center; color: white; font-weight: 500;">Select Class</div>
+              <div class="dropdown-item class-item" data-value="1" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0;">Class 1</div>
+              <div class="dropdown-item class-item" data-value="2" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0;">Class 2</div>
+              <div class="dropdown-item class-item" data-value="3" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0;">Class 3</div>
+              <div class="dropdown-item class-item" data-value="4" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease;">Class 4</div>
+            </div>
+          </div>
+          
+          <div id="sectionSelectorContainer" class="class-selector-container" style="margin: 0; display: none; position: relative; width: 180px;">
+
+            <div id="sectionDropdownTrigger" class="class-dropdown-trigger" style="padding: 12px 16px; border-radius: 12px; border: none; background: linear-gradient(to right, #11998e, #38ef7d); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(56, 239, 125, 0.2); transition: all 0.3s ease;">
+              <span id="selectedSectionText" style="font-weight: 500;">Select Section</span>
+              <i class="fas fa-chevron-down dropdown-icon" style="transition: transform 0.3s ease;"></i>
+            </div>
+            
+            <!-- Custom dropdown menu that appears automatically -->
+            <div id="customSectionDropdown" class="custom-dropdown" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); z-index: 1000; margin-top: 8px; transform-origin: top center; animation: slideDown 0.3s ease-out forwards; overflow: hidden;">
+              <div class="dropdown-header" style="background: linear-gradient(to right, #11998e, #38ef7d); padding: 12px; text-align: center; color: white; font-weight: 500;">Select Section</div>
+              <div class="dropdown-item" data-value="A" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0;">Section A</div>
+              <div class="dropdown-item" data-value="B" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0;">Section B</div>
+              <div class="dropdown-item" data-value="C" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0;">Section C</div>
+              <div class="dropdown-item" data-value="D" style="padding: 14px; cursor: pointer; text-align: center; color: #444; transition: all 0.2s ease;">Section D</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="activities-container">
+        <div id="loader" class="loader">
+          <div class="loader-spinner"></div>
+        </div>
+        
+        <div id="activitiesGrid" class="activities-grid hidden">
+          <!-- Activities will be populated here -->
+        </div>
+        
+        <div id="noActivities" class="no-activities hidden">
+          <p>No activities found for the selected class.</p>
+          <p style="font-size: 0.8rem; color: #666; margin-top: 1rem;">
+            If this is unexpected, please ensure the table exists in Supabase with the exact name:<br>
+            <code>auden_cbse.auden_cbse_class[NUMBER]_activities</code>
+          </p>
+        </div>
+        
+        <div id="activityCount" class="activity-count hidden"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/auth.js"></script>
+  
+  <!-- Global function to safely navigate to activity page -->
+  <script>
+    function openActivity(activityId, classNum) {
+      console.log('Opening activity:', activityId, 'for class:', classNum);
+      
+      // Store a flag indicating this is an intentional navigation
+      sessionStorage.setItem('intentionalNavigation', 'true');
+      
+      // Navigate to the activity page
+      window.location.href = `activity_type1.html?id=${activityId}&class=${classNum}`;
+    }
+  </script>
+  
+  <script>
+    // Use the same Supabase client initialization as activity_type1.html
+    const SUPABASE_URL = 'https://zmubswgdqfmleajkccqk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptdWJzd2dkcWZtbGVhamtjY3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2NjUxNjksImV4cCI6MjA1NjI0MTE2OX0.Yh3sHnYDMkeXHoNFg3w-NM-dl9hJFC-omjtIR3KFT2I';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize variables
+      let allActivities = [];
+      let activeSubject = null;
+      
+      // These will be initialized later with localStorage values
+      
+      // Check if user is authenticated using existing stored token
+      function isAuthenticated() {
+        // Check if there's a stored user in localStorage (same method as in auth.js)
+        const storedUser = localStorage.getItem('user');
+        return storedUser !== null;
+      }
+      
+      // Check for user role
+      function getUserRole() {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            return user.role;
+          } catch (e) {
+            console.error('Error parsing stored user:', e);
+            return null;
+          }
+        }
+        return null;
+      }
+      
+      // Check auth and update UI
+      function checkAuth() {
+        if (!isAuthenticated()) {
+          console.log('No authenticated user found. Redirecting to login...');
+          // Prevent redirect loop by checking if we're coming from the index page
+          if (!document.referrer.includes('index.html')) {
+            window.location.href = '../index.html';
+          } else {
+            // If coming from index, don't redirect again
+            console.log('Coming from login page, not redirecting to avoid loop');
+            alert('Please log in first before accessing this page');
+          }
+          return false;
+        }
+
+        // User is authenticated, check if role is allowed
+        const userRole = getUserRole();
+        console.log('User role:', userRole);
+        
+        // Set user info in the header
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        document.getElementById('userEmail').textContent = storedUser.email || '';
+        // userRole element was removed, so we don't need to set its content
+        
+        // Check if role is allowed
+        if (!['schools', 'admin', 'developer'].includes(userRole)) {
+          console.log('Unauthorized role:', userRole);
+          alert('You do not have permission to access this page');
+          window.location.href = '../index.html';
+          return false;
+        }
+        
+        return true;
+      }
+      
+      // Check auth on page load - don't redirect if coming from login
+      const isUserAuthenticated = checkAuth();
+      
+      // Setup logout functionality
+      function setupLogout() {
+        console.log('Setting up logout functionality');
+        
+        // Get logout button
+        const logoutButton = document.getElementById('logout-button');
+        const closeModalBtn = document.getElementById('close-logout-modal');
+        const cancelLogoutBtn = document.getElementById('cancel-logout-btn');
+        const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
+        const logoutModal = document.getElementById('logout-confirm-modal');
+        
+        // Attach click handlers
+        if (logoutButton) {
+          logoutButton.onclick = function(e) {
+            e.preventDefault();
+            logoutModal.style.display = 'block';
+            console.log('Logout modal opened');
+            return false;
+          };
+        }
+        
+        // Close modal handlers
+        if (closeModalBtn) {
+          closeModalBtn.onclick = function() {
+            logoutModal.style.display = 'none';
+          };
+        }
+        
+        if (cancelLogoutBtn) {
+          cancelLogoutBtn.onclick = function() {
+            logoutModal.style.display = 'none';
+          };
+        }
+        
+        // Confirm logout handler
+        if (confirmLogoutBtn) {
+          confirmLogoutBtn.onclick = function() {
+            try {
+              // Hide the modal
+              logoutModal.style.display = 'none';
+              showToast('Logging out...');
+              
+              // Clear all authentication related data
+              localStorage.clear();
+              
+              // Clear all cookies
+              document.cookie.split(';').forEach(cookie => {
+                const name = cookie.split('=')[0].trim();
+                document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+              });
+              
+              // Supabase logout
+              try {
+                if (window.supabaseClient) {
+                  supabaseClient.auth.signOut();
+                }
+              } catch (e) {
+                console.log('Supabase logout error:', e);
+              }
+              
+              // Redirect to login page
+              setTimeout(() => {
+                window.location.href = '../index.html';
+              }, 1000);
+            } catch (error) {
+              console.error('Logout error:', error);
+              window.location.href = '../index.html';
+            }
+          };
+        }
+      }
+      
+      // Call setup immediately
+      setupLogout();
+      
+      // Also set up when DOM is loaded (backup)
+      document.addEventListener('DOMContentLoaded', setupLogout);
+      
+      // Handle class and section selection (only if authenticated)
+      const classDropdownTrigger = document.getElementById('classDropdownTrigger');
+      const sectionDropdownTrigger = document.getElementById('sectionDropdownTrigger');
+      const sectionSelectorContainer = document.getElementById('sectionSelectorContainer');
+      const selectedClassText = document.getElementById('selectedClassText');
+      const selectedSectionText = document.getElementById('selectedSectionText');
+      
+      // Initialize variables with saved values from localStorage if available
+      const savedClass = localStorage.getItem('selectedClass');
+      const savedSection = localStorage.getItem('selectedSection');
+      let currentClass = savedClass || null;
+      let currentSection = savedSection || null;
+      
+      // Function to restore saved selections
+      function restoreSelections() {
+        console.log('Restoring selections:', { currentClass, currentSection });
+        if (currentClass && selectedClassText) {
+          selectedClassText.textContent = `Class ${currentClass}`;
+          // Show section dropdown if class is selected
+          if (sectionSelectorContainer) {
+            sectionSelectorContainer.style.display = 'block';
+          }
+        }
+        
+        if (currentSection && selectedSectionText) {
+          selectedSectionText.textContent = `Section ${currentSection}`;
+          // Load activities for the saved class and section
+          if (currentClass && currentSection) {
+            console.log('Loading activities from restored selections');
+            // Use setTimeout to ensure DOM is fully ready
+            setTimeout(() => {
+              loadActivities(currentClass, currentSection);
+            }, 100);
+          }
+        }
+      }
+      
+      if (isUserAuthenticated) {
+        // Check if we're returning from activity_type1.html page
+        const referrer = document.referrer;
+        const isReturningFromActivity = referrer.includes('activity_type1.html');
+        
+        // Restore saved selections when page loads
+        if (isReturningFromActivity) {
+          // When returning from activity page, ensure we load activities immediately
+          console.log('Returning from activity page, loading activities');
+          if (currentClass && currentSection) {
+            // Use a small delay to ensure DOM is ready
+            setTimeout(() => {
+              loadActivities(currentClass, currentSection);
+            }, 200);
+          }
+        }
+        
+        restoreSelections();
+        
+        // Class dropdown trigger click event
+        classDropdownTrigger.addEventListener('click', function() {
+          const customClassDropdown = document.getElementById('customClassDropdown');
+          customClassDropdown.style.display = customClassDropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Section dropdown trigger click event
+        sectionDropdownTrigger.addEventListener('click', function() {
+          const customSectionDropdown = document.getElementById('customSectionDropdown');
+          customSectionDropdown.style.display = customSectionDropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        
+
+        
+        // Class dropdown item click events
+        document.querySelectorAll('.class-item').forEach(item => {
+          item.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            currentClass = value;
+            
+            // Update the selected text
+            selectedClassText.textContent = `Class ${value}`;
+            
+            // Save selection to localStorage
+            localStorage.setItem('selectedClass', value);
+            
+            // Clear section selection when class changes
+            localStorage.removeItem('selectedSection');
+            currentSection = null;
+            selectedSectionText.textContent = 'Select Section';
+            
+            // Hide class dropdown
+            document.getElementById('customClassDropdown').style.display = 'none';
+            
+            // Show section dropdown after class is selected
+            sectionSelectorContainer.style.display = 'block';
+            
+            // Show custom dropdown menu automatically with a slight delay to ensure proper rendering
+            setTimeout(() => {
+              // Open the dropdown by simulating a click or focus
+              const customDropdown = document.getElementById('customSectionDropdown');
+              customDropdown.style.display = 'block';
+              
+              // Add a highlight effect to draw attention
+              sectionSelectorContainer.style.animation = 'pulse 1s';
+              setTimeout(() => {
+                sectionSelectorContainer.style.animation = '';
+              }, 1000);
+            }, 50);
+            
+            // Clear activities until section is selected
+            document.getElementById('activitiesGrid').innerHTML = '';
+            document.getElementById('noActivities').textContent = 'Please select a section to view activities.';
+            document.getElementById('noActivities').classList.remove('hidden');
+            document.getElementById('activitiesGrid').classList.add('hidden');
+            document.getElementById('activityCount').classList.add('hidden');
+          });
+        });
+        
+        // Section dropdown item click events
+        document.querySelectorAll('.dropdown-item:not(.class-item)').forEach(item => {
+          item.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            currentSection = value;
+            
+            // Update the selected text
+            selectedSectionText.textContent = `Section ${value}`;
+            
+            // Save selection to localStorage
+            localStorage.setItem('selectedSection', value);
+            
+            // Hide custom dropdown
+            document.getElementById('customSectionDropdown').style.display = 'none';
+            
+            // Load activities
+            if (currentClass && currentSection) {
+              loadActivities(currentClass, currentSection);
+            }
+          });
+        });
+        
+        // Close custom dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+          // Handle section dropdown
+          const customSectionDropdown = document.getElementById('customSectionDropdown');
+          const sectionContainer = document.getElementById('sectionSelectorContainer');
+          
+          if (customSectionDropdown.style.display === 'block' && 
+              !sectionContainer.contains(e.target) && 
+              e.target !== sectionDropdownTrigger) {
+            customSectionDropdown.style.display = 'none';
+          }
+          
+          // Handle class dropdown
+          const customClassDropdown = document.getElementById('customClassDropdown');
+          const classContainer = document.querySelector('.class-selector-container');
+          
+          if (customClassDropdown.style.display === 'block' && 
+              !classContainer.contains(e.target) && 
+              e.target !== classDropdownTrigger) {
+            customClassDropdown.style.display = 'none';
+          }
+        }, true);
+        
+        // No default selection - user must select class and section
+        document.getElementById('noActivities').textContent = 'Please select a class and section to view activities.';
+        document.getElementById('noActivities').classList.remove('hidden');
+        document.getElementById('activitiesGrid').classList.add('hidden');
+        document.getElementById('activityCount').classList.add('hidden');
+        
+        // Open class dropdown automatically only during fresh login
+        setTimeout(() => {
+          // Check if this is a fresh login by looking at session storage
+          const isFreshLogin = !sessionStorage.getItem('hasVisitedClassActivities');
+          
+          // Set flag in session storage to track that user has visited this page
+          sessionStorage.setItem('hasVisitedClassActivities', 'true');
+          
+          // If this is a fresh login or no class is selected, open the dropdown
+          if (isFreshLogin || !currentClass) {
+            console.log('Fresh login or no class selected, opening class dropdown');
+            document.getElementById('customClassDropdown').style.display = 'block';
+            // Add a highlight effect to the class dropdown
+            document.querySelector('.class-selector-container').style.animation = 'pulse 1s';
+            setTimeout(() => {
+              document.querySelector('.class-selector-container').style.animation = '';
+            }, 1000);
+          } else {
+            console.log('Not a fresh login and class already selected, keeping selection');
+          }
+        }, 500);
+      }
+      
+
+      
+      // Load activities for a specific class and section
+      async function loadActivities(classNum, section) {
+        console.log(`loadActivities called with class=${classNum}, section=${section}`);
+        showLoader();
+        
+        try {
+          console.log(`Loading activities for class ${classNum}`);
+
+          // Try it with API key from local storage if available
+          const storedToken = localStorage.getItem('token');
+          let headers = {};
+          
+          if (storedToken && storedToken !== 'mock-token') {
+            headers.Authorization = `Bearer ${storedToken}`;
+          }
+
+          // For demo purposes, create some mock data for Class 1, Section A
+          let data, error;
+          
+          if (classNum === '1' && section === 'A') {
+            // Mock data for the first activity
+            data = [{
+              activity_id: '1001',
+              activity_name: 'Colorful Shape Sorting',
+              description: 'Students identify and sort objects by colors and shapes',
+              is_active: true,
+              section: 'A'
+            }];
+            error = null;
+          } else {
+            // For other class/section combinations, try to fetch from database
+            let result = await supabaseClient
+              .from(`auden_cbse_class${classNum}_activities`)
+              .select('*')
+              .eq('is_active', true)
+              .eq('section', section);
+              
+            data = result.data;
+            error = result.error;
+          }
+
+          console.log('Query result:', { data, error });
+            
+          if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+          }
+          
+          console.log('Fetched activities:', data);
+          allActivities = data || [];
+          
+          // Update UI
+          // No longer updating subject filters
+          console.log('Rendering activities:', allActivities.length);
+          renderActivities(allActivities);
+          
+        } catch (error) {
+          console.error('Error loading activities:', error);
+          document.getElementById('noActivities').classList.remove('hidden');
+          document.getElementById('activitiesGrid').classList.add('hidden');
+          document.getElementById('noActivities').textContent = 'Error loading activities. Please try again.';
+        } finally {
+          hideLoader();
+        }
+      }
+      
+      // Subject filters have been removed from the UI
+      // This function has been removed as the elements no longer exist
+      function updateSubjectFilters(activities) {
+        // Function intentionally left blank
+        return;
+      }
+      
+      // Filter activities function - simplified since subject filters were removed
+      function filterActivities() {
+        // No longer filtering by subject since filters were removed
+        renderActivities(allActivities);
+      }
+      
+      // Toast notification function
+      // Toast function using the #toast element (copied from activity_type1.html)
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+          toast.style.display = 'none';
+        }, 2500);
+      }
+
+      
+      // Render activities to the grid
+      function renderActivities(activities) {
+        console.log('renderActivities called with', activities.length, 'activities');
+        const grid = document.getElementById('activitiesGrid');
+        const noActivities = document.getElementById('noActivities');
+        const activityCount = document.getElementById('activityCount');
+        
+        if (!grid || !noActivities || !activityCount) {
+          console.error('Required DOM elements not found for rendering activities');
+          return;
+        }
+        
+        grid.innerHTML = '';
+        
+        if (activities.length === 0) {
+          grid.classList.add('hidden');
+          noActivities.classList.remove('hidden');
+          activityCount.classList.add('hidden');
+          return;
+        }
+        
+        activities.forEach((activity, index) => {
+          const card = document.createElement('div');
+          card.className = `activity-card fade-in`;
+          card.style.animationDelay = `${index * 0.1}s`;
+          
+          card.innerHTML = `
+            <div class="activity-header">
+              <h3 style="text-align: center; margin-bottom: 0.5rem;">${activity.activity_name}</h3>
+            </div>
+            <div class="activity-body">
+              <div class="activity-description">${activity.description || 'No description available.'}</div>
+              <div class="activity-progress">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                  <h4 style="margin: 0; white-space: nowrap;">Progress:</h4>
+                  <div class="progress-bar-container" style="flex: 1;">
+                    <div class="progress-bar" style="width: ${Math.floor(Math.random() * 100)}%"></div>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <a href="activity_type1.html?id=${activity.activity_id}&class=${currentClass}" class="start-activity-btn" style="border-radius: 8px;" onclick="event.preventDefault(); openActivity(${activity.activity_id}, '${currentClass}');">
+                    <i class="fas fa-arrow-right"></i> Open
+                  </a>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          grid.appendChild(card);
+        });
+        
+        grid.classList.remove('hidden');
+        noActivities.classList.add('hidden');
+        activityCount.textContent = `Showing ${activities.length} activities`;
+        activityCount.classList.remove('hidden');
+      }
+      
+      // Show/hide loader
+      function showLoader() {
+        document.getElementById('loader').classList.remove('hidden');
+        document.getElementById('activitiesGrid').classList.add('hidden');
+        document.getElementById('noActivities').classList.add('hidden');
+        document.getElementById('activityCount').classList.add('hidden');
+      }
+      
+      function hideLoader() {
+        document.getElementById('loader').classList.add('hidden');
+      }
+      
+      // openActivity function moved to global scope
+      
+      // Default display text (now handled in the class selection code)
+      if (!isUserAuthenticated) {
+        document.getElementById('selectedClassDisplay').textContent = 'Authentication Required';
+        // Clear saved selections if not authenticated
+        localStorage.removeItem('selectedClass');
+        localStorage.removeItem('selectedSection');
+      }
+    });
+  </script>
+</body>
+</html>
